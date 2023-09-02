@@ -16,7 +16,7 @@
 #define BUFFER_SIZE 80
 #define ARR_SIZE 80
 
-// #define DEBUG 1  /* In case you want debug messages */
+//#define DEBUG 1  /* In case you want debug messages */
 
 void parse_args(char *buffer, char *args[ARR_SIZE][ARR_SIZE], size_t args_size, size_t *nargs) {
    char *buf_args[args_size]; 
@@ -50,12 +50,14 @@ void parse_args(char *buffer, char *args[ARR_SIZE][ARR_SIZE], size_t args_size, 
    args[j][k] = NULL;
    args[j+1][0] = NULL;
 
-   for(int a = 0; a < 5; a++) {
-      for(int b = 0; b < 3; b++) {
+   #ifdef DEBUG
+   for(int a = 0; args[a][0] != NULL; a++) {
+      for(int b = 0; args[a][b] != NULL; b++) {
          printf("%-10s ", args[a][b]);
       }
       printf("\n");
    }
+   #endif
 }
 
 int main(int argc, char *argv[], char *envp[]){
@@ -70,22 +72,24 @@ int main(int argc, char *argv[], char *envp[]){
       fgets(buffer, BUFFER_SIZE, stdin); /* Read in command line */
       parse_args(buffer, args, ARR_SIZE, &num_args); 
 
-      if(num_args == 0) continue;
+      if(num_args == 0 && args[0][0] == NULL) continue;
       if(!strcmp(args[0][0], "exit")) exit(0);       
 
-      pid = fork();
-      if(pid) {  /* Parent */
-         #ifdef DEBUG
+      for(int i = 0; args[i][0] != NULL; i++) {
+         pid = fork();
+         if(pid) {  /* Parent */
+            #ifdef DEBUG
             printf("Waiting for child (%d)\n", pid);
-         #endif
+            #endif
             pid = wait(NULL);
-         #ifdef DEBUG
+            #ifdef DEBUG
             printf("Child (%d) finished\n", pid);
-         #endif
-      } else {  /* Child executing the command */
-         if(execvp(args[0][0], args[0])) {
-            puts(strerror(errno));
-            exit(127);
+            #endif
+         } else {  /* Child executing the command */
+            if(execvp(args[i][0], args[i])) {
+               puts(strerror(errno));
+               exit(127);
+            }
          }
       }
    }    
