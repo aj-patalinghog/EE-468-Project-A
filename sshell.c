@@ -57,6 +57,10 @@ int main(int argc, char *argv[], char *envp[]){
       fgets(buffer, BUFFER_SIZE, stdin); /* Read in command line */
       parse_args(buffer, args, ARR_SIZE, &num_args); 
 
+      for(int i = 0; i < num_args; i++) {
+         printf("args[%d] = %s\n", i, args[i]);
+      }
+
       if (num_args>0) {
          if(!strcmp(args[0], "exit" )) exit(0);       
          pid = fork();
