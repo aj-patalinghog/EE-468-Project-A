@@ -46,14 +46,15 @@ void parse_args(char *buffer, char *args[ARR_SIZE][ARR_SIZE], size_t args_size, 
          }
    }
 
-   *nargs = j;
+   *nargs = args[0][0] == NULL ? 0 : j+1;
    args[j][k] = NULL;
    args[j+1][0] = NULL;
 
    #ifdef DEBUG
    for(int a = 0; args[a][0] != NULL; a++) {
+      printf("command %d: ", a + 1);
       for(int b = 0; args[a][b] != NULL; b++) {
-         printf("%-10s ", args[a][b]);
+         printf("%s ", args[a][b]);
       }
       printf("\n");
    }
@@ -66,19 +67,27 @@ int main(int argc, char *argv[], char *envp[]){
 
    size_t num_args;
    pid_t pid;
+   int fd[num_args][2];
 
    while(1){
       printf("ee468>> "); 
       fgets(buffer, BUFFER_SIZE, stdin); /* Read in command line */
       parse_args(buffer, args, ARR_SIZE, &num_args); 
 
-      if(num_args == 0 && args[0][0] == NULL) continue;
+      if(num_args == 0) continue;
       if(!strcmp(args[0][0], "exit")) exit(0);       
 
-      for(int i = 0; args[i][0] != NULL; i++) {
+      for(int i = 0; i < num_args; i++) {
+         //printf("i = %d\n", i);
+         if (pipe(fd[i]) == -1) {
+            perror("pipe");
+            exit(1);
+         }
          pid = fork();
          if(pid) {  /* Parent */
+            close(fd[i][1]);
             #ifdef DEBUG
+            printf("i = %d\n", i);
             printf("Waiting for child (%d)\n", pid);
             #endif
             pid = wait(NULL);
@@ -86,6 +95,16 @@ int main(int argc, char *argv[], char *envp[]){
             printf("Child (%d) finished\n", pid);
             #endif
          } else {  /* Child executing the command */
+            if(i != 0) {
+               dup2(fd[i-1][0], STDIN_FILENO);
+               close(fd[i-1][0]);
+            }
+
+            if(i + 1 != num_args) {
+               dup2(fd[i][1], STDOUT_FILENO);
+               close(fd[i][1]);
+            }
+
             if(execvp(args[i][0], args[i])) {
                puts(strerror(errno));
                exit(127);
