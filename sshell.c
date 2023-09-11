@@ -66,6 +66,7 @@ int main(int argc, char *argv[], char *envp[]) {
    size_t num_args;
    pid_t pid;
    int fd[num_args][2];
+   int executed;
 
    while(1) {
       printf("ee468>> "); 
@@ -73,6 +74,10 @@ int main(int argc, char *argv[], char *envp[]) {
       parse_args(buffer, args, ARR_SIZE, &num_args); 
 
       if(num_args == 0) continue;
+      if(num_args > 5) {
+         perror("Too many pipes (4 max)\n");
+         exit(1);
+      }
       if(!strcmp(args[0][0], "exit")) exit(0);       
 
       for(int i = 0; i < num_args; i++) {
@@ -86,12 +91,13 @@ int main(int argc, char *argv[], char *envp[]) {
             exit(1);
          } else if(pid) { // Parent
             #ifdef DEBUG
-            printf("i = %d\n", i);
+            printf("Executed commands = %d\n", executed);
             printf("Waiting for child (%d)\n", pid);
             #endif
 
             close(fd[i][1]); // Parent doesn't need write end of pipes
             pid = wait(NULL);
+            executed++;
 
             #ifdef DEBUG
             printf("Child (%d) finished\n", pid);
